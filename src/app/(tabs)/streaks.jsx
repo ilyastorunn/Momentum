@@ -18,6 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useQuery } from "@tanstack/react-query";
 import { LineGraph } from "react-native-graph";
+import { habitsService, calendarService } from "@/utils/supabaseService";
 import { mockApiResponses, USE_MOCK_DATA, SIMULATE_NETWORK_ERROR, API_DELAY } from "@/utils/mockData";
 
 export default function StreaksScreen() {
@@ -46,12 +47,10 @@ export default function StreaksScreen() {
   } = useQuery({
     queryKey: ["habits"],
     queryFn: async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, API_DELAY));
-      
       // If using mock data, return immediately
       if (USE_MOCK_DATA) {
         console.log("Using mock data for habits");
+        await new Promise(resolve => setTimeout(resolve, API_DELAY));
         return mockApiResponses.habits;
       }
       
@@ -60,16 +59,12 @@ export default function StreaksScreen() {
       }
       
       try {
-        const response = await fetch("/api/habits");
-        if (!response.ok) {
-          // Fallback to mock data if API fails
-          console.log("API failed, using mock data for habits");
-          return mockApiResponses.habits;
-        }
-        return response.json();
-      } catch (apiError) {
-        // If API is not available, use mock data
-        console.log("API not available, using mock data for habits");
+        // Use Supabase service
+        return await habitsService.getAll();
+      } catch (supabaseError) {
+        console.error("Supabase error:", supabaseError);
+        // Fallback to mock data if Supabase fails
+        console.log("Supabase failed, using mock data for habits");
         return mockApiResponses.habits;
       }
     },
@@ -83,12 +78,10 @@ export default function StreaksScreen() {
   } = useQuery({
     queryKey: ["calendar", currentYear, currentMonth],
     queryFn: async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, API_DELAY));
-      
       // If using mock data, return immediately
       if (USE_MOCK_DATA) {
         console.log("Using mock data for calendar");
+        await new Promise(resolve => setTimeout(resolve, API_DELAY));
         return mockApiResponses.calendar;
       }
       
@@ -97,18 +90,12 @@ export default function StreaksScreen() {
       }
       
       try {
-        const response = await fetch(
-          `/api/calendar?year=${currentYear}&month=${currentMonth}`,
-        );
-        if (!response.ok) {
-          // Fallback to mock data if API fails
-          console.log("API failed, using mock data for calendar");
-          return mockApiResponses.calendar;
-        }
-        return response.json();
-      } catch (apiError) {
-        // If API is not available, use mock data
-        console.log("API not available, using mock data for calendar");
+        // Use Supabase service
+        return await calendarService.getMonthData(currentYear, currentMonth);
+      } catch (supabaseError) {
+        console.error("Supabase error:", supabaseError);
+        // Fallback to mock data if Supabase fails
+        console.log("Supabase failed, using mock data for calendar");
         return mockApiResponses.calendar;
       }
     },

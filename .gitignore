@@ -42,3 +42,5 @@ app-example
 .metro-virtual/*
 
 .env.local
+
+.env.production

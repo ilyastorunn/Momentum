@@ -24,6 +24,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { progressService } from "@/utils/supabaseService";
 import { mockApiResponses, USE_MOCK_DATA, SIMULATE_NETWORK_ERROR, API_DELAY } from "@/utils/mockData";
 
 export default function TodayScreen() {
@@ -49,12 +50,10 @@ export default function TodayScreen() {
   } = useQuery({
     queryKey: ["progress", today],
     queryFn: async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, API_DELAY));
-      
       // If using mock data, return immediately
       if (USE_MOCK_DATA) {
         console.log("Using mock data for progress");
+        await new Promise(resolve => setTimeout(resolve, API_DELAY));
         return mockApiResponses.progress;
       }
       
@@ -63,16 +62,12 @@ export default function TodayScreen() {
       }
       
       try {
-        const response = await fetch(`/api/progress?date=${today}`);
-        if (!response.ok) {
-          // Fallback to mock data if API fails
-          console.log("API failed, using mock data for progress");
-          return mockApiResponses.progress;
-        }
-        return response.json();
-      } catch (apiError) {
-        // If API is not available, use mock data
-        console.log("API not available, using mock data for progress");
+        // Use Supabase service
+        return await progressService.getByDate(today);
+      } catch (supabaseError) {
+        console.error("Supabase error:", supabaseError);
+        // Fallback to mock data if Supabase fails
+        console.log("Supabase failed, using mock data for progress");
         return mockApiResponses.progress;
       }
     },
@@ -81,12 +76,10 @@ export default function TodayScreen() {
   // Update progress mutation
   const updateProgressMutation = useMutation({
     mutationFn: async ({ habit_id, completed, note }) => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
       // If using mock data, simulate successful update
       if (USE_MOCK_DATA) {
         console.log("Using mock data, simulating progress update");
+        await new Promise(resolve => setTimeout(resolve, 200));
         return { success: true };
       }
       
@@ -95,25 +88,12 @@ export default function TodayScreen() {
       }
       
       try {
-        const response = await fetch("/api/progress", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            habit_id,
-            date: today,
-            completed,
-            note,
-          }),
-        });
-        if (!response.ok) {
-          // Simulate successful update for demo
-          console.log("API failed, simulating progress update");
-          return { success: true };
-        }
-        return response.json();
-      } catch (apiError) {
-        // If API is not available, simulate successful update
-        console.log("API not available, simulating progress update");
+        // Use Supabase service
+        return await progressService.update(habit_id, today, completed, note);
+      } catch (supabaseError) {
+        console.error("Supabase error:", supabaseError);
+        // Simulate successful update for demo if Supabase fails
+        console.log("Supabase failed, simulating progress update");
         return { success: true };
       }
     },

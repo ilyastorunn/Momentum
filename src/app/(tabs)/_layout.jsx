@@ -16,6 +16,7 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
+import { habitsService } from '@/utils/supabaseService';
 import { mockApiResponses, USE_MOCK_DATA, SIMULATE_NETWORK_ERROR, API_DELAY } from '@/utils/mockData';
 
 const HABIT_ICONS = [
@@ -52,12 +53,10 @@ export default function TabLayout() {
   // Create habit mutation
   const createHabitMutation = useMutation({
     mutationFn: async ({ name, icon, category }) => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, API_DELAY));
-      
       // If using mock data, simulate successful creation
       if (USE_MOCK_DATA) {
         console.log("Using mock data, simulating habit creation");
+        await new Promise(resolve => setTimeout(resolve, API_DELAY));
         return { 
           success: true, 
           habit: { 
@@ -78,32 +77,12 @@ export default function TabLayout() {
       }
       
       try {
-        const response = await fetch("/api/habits", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, icon, category }),
-        });
-        if (!response.ok) {
-          // Simulate successful creation for demo
-          console.log("API failed, simulating habit creation");
-          return { 
-            success: true, 
-            habit: { 
-              id: Date.now(), 
-              name, 
-              icon, 
-              category,
-              current_streak: 0,
-              best_streak: 0,
-              completed_this_week: 0,
-              total_completions: 0
-            } 
-          };
-        }
-        return response.json();
-      } catch (apiError) {
-        // If API is not available, simulate successful creation
-        console.log("API not available, simulating habit creation");
+        // Use Supabase service
+        return await habitsService.create({ name, icon, category });
+      } catch (supabaseError) {
+        console.error("Supabase error:", supabaseError);
+        // Simulate successful creation for demo if Supabase fails
+        console.log("Supabase failed, simulating habit creation");
         return { 
           success: true, 
           habit: { 
@@ -145,7 +124,7 @@ export default function TabLayout() {
     setSelectedIcon("water");
     setSelectedFrequency("daily");
     setShowCreateModal(false);
-    Haptics.successAsync();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   const CustomTabBar = ({ state, descriptors, navigation }) => {

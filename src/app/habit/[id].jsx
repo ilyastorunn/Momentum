@@ -24,6 +24,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { habitsService, progressService } from '@/utils/supabaseService';
 import { getMockHabitDetail, getMockHabitProgress, USE_MOCK_DATA, SIMULATE_NETWORK_ERROR, API_DELAY } from '@/utils/mockData';
 
 export default function HabitDetailScreen() {
@@ -53,12 +54,10 @@ export default function HabitDetailScreen() {
   } = useQuery({
     queryKey: ['habit', id],
     queryFn: async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, API_DELAY));
-      
       // If using mock data, return immediately
       if (USE_MOCK_DATA) {
         console.log("Using mock data for habit detail");
+        await new Promise(resolve => setTimeout(resolve, API_DELAY));
         return getMockHabitDetail(id);
       }
       
@@ -67,16 +66,12 @@ export default function HabitDetailScreen() {
       }
       
       try {
-        const response = await fetch(`/api/habits/${id}`);
-        if (!response.ok) {
-          // Fallback to mock data if API fails
-          console.log("API failed, using mock data for habit detail");
-          return getMockHabitDetail(id);
-        }
-        return response.json();
-      } catch (apiError) {
-        // If API is not available, use mock data
-        console.log("API not available, using mock data for habit detail");
+        // Use Supabase service
+        return await habitsService.getById(id);
+      } catch (supabaseError) {
+        console.error("Supabase error:", supabaseError);
+        // Fallback to mock data if Supabase fails
+        console.log("Supabase failed, using mock data for habit detail");
         return getMockHabitDetail(id);
       }
     },
@@ -90,12 +85,10 @@ export default function HabitDetailScreen() {
   } = useQuery({
     queryKey: ['progress', id, currentYear, currentMonth],
     queryFn: async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, API_DELAY));
-      
       // If using mock data, return immediately
       if (USE_MOCK_DATA) {
         console.log("Using mock data for habit progress");
+        await new Promise(resolve => setTimeout(resolve, API_DELAY));
         return getMockHabitProgress(id, currentYear, currentMonth);
       }
       
@@ -104,18 +97,14 @@ export default function HabitDetailScreen() {
       }
       
       try {
-        const response = await fetch(
-          `/api/progress?habit_id=${id}&year=${currentYear}&month=${currentMonth}`
-        );
-        if (!response.ok) {
-          // Fallback to mock data if API fails
-          console.log("API failed, using mock data for habit progress");
-          return getMockHabitProgress(id, currentYear, currentMonth);
-        }
-        return response.json();
-      } catch (apiError) {
-        // If API is not available, use mock data
-        console.log("API not available, using mock data for habit progress");
+        // Use Supabase service
+        const startDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+        const endDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`;
+        return await progressService.getByHabitAndDateRange(id, startDate, endDate);
+      } catch (supabaseError) {
+        console.error("Supabase error:", supabaseError);
+        // Fallback to mock data if Supabase fails
+        console.log("Supabase failed, using mock data for habit progress");
         return getMockHabitProgress(id, currentYear, currentMonth);
       }
     },
@@ -124,12 +113,10 @@ export default function HabitDetailScreen() {
   // Toggle progress mutation
   const toggleProgressMutation = useMutation({
     mutationFn: async ({ habitId, date, completed }) => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
       // If using mock data, simulate successful update
       if (USE_MOCK_DATA) {
         console.log("Using mock data, simulating progress toggle");
+        await new Promise(resolve => setTimeout(resolve, 200));
         return { success: true };
       }
       
@@ -138,24 +125,12 @@ export default function HabitDetailScreen() {
       }
       
       try {
-        const response = await fetch('/api/progress', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            habit_id: habitId,
-            completion_date: date,
-            completed,
-          }),
-        });
-        if (!response.ok) {
-          // Simulate successful update for demo
-          console.log("API failed, simulating progress toggle");
-          return { success: true };
-        }
-        return response.json();
-      } catch (apiError) {
-        // If API is not available, simulate successful update
-        console.log("API not available, simulating progress toggle");
+        // Use Supabase service
+        return await progressService.update(habitId, date, completed, '');
+      } catch (supabaseError) {
+        console.error("Supabase error:", supabaseError);
+        // Simulate successful update for demo if Supabase fails
+        console.log("Supabase failed, simulating progress toggle");
         return { success: true };
       }
     },
@@ -168,12 +143,10 @@ export default function HabitDetailScreen() {
   // Delete habit mutation
   const deleteHabitMutation = useMutation({
     mutationFn: async (habitId) => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
       // If using mock data, simulate successful deletion
       if (USE_MOCK_DATA) {
         console.log("Using mock data, simulating habit deletion");
+        await new Promise(resolve => setTimeout(resolve, 300));
         return { success: true };
       }
       
@@ -182,18 +155,12 @@ export default function HabitDetailScreen() {
       }
       
       try {
-        const response = await fetch(`/api/habits/${habitId}`, {
-          method: 'DELETE',
-        });
-        if (!response.ok) {
-          // Simulate successful deletion for demo
-          console.log("API failed, simulating habit deletion");
-          return { success: true };
-        }
-        return response.json();
-      } catch (apiError) {
-        // If API is not available, simulate successful deletion
-        console.log("API not available, simulating habit deletion");
+        // Use Supabase service
+        return await habitsService.delete(habitId);
+      } catch (supabaseError) {
+        console.error("Supabase error:", supabaseError);
+        // Simulate successful deletion for demo if Supabase fails
+        console.log("Supabase failed, simulating habit deletion");
         return { success: true };
       }
     },

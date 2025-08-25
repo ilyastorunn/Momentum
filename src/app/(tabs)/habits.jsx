@@ -24,6 +24,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { habitsService } from "@/utils/supabaseService";
 import { mockApiResponses, USE_MOCK_DATA, SIMULATE_NETWORK_ERROR, API_DELAY } from "@/utils/mockData";
 
 export default function HabitsScreen() {
@@ -45,12 +46,10 @@ export default function HabitsScreen() {
   } = useQuery({
     queryKey: ["habits"],
     queryFn: async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, API_DELAY));
-      
       // If using mock data, return immediately
       if (USE_MOCK_DATA) {
         console.log("Using mock data for habits");
+        await new Promise(resolve => setTimeout(resolve, API_DELAY));
         return mockApiResponses.habits;
       }
       
@@ -59,16 +58,12 @@ export default function HabitsScreen() {
       }
       
       try {
-        const response = await fetch("/api/habits");
-        if (!response.ok) {
-          // Fallback to mock data if API fails
-          console.log("API failed, using mock data for habits");
-          return mockApiResponses.habits;
-        }
-        return response.json();
-      } catch (apiError) {
-        // If API is not available, use mock data
-        console.log("API not available, using mock data for habits");
+        // Use Supabase service
+        return await habitsService.getAll();
+      } catch (supabaseError) {
+        console.error("Supabase error:", supabaseError);
+        // Fallback to mock data if Supabase fails
+        console.log("Supabase failed, using mock data for habits");
         return mockApiResponses.habits;
       }
     },
@@ -77,13 +72,19 @@ export default function HabitsScreen() {
   // Delete habit mutation
   const deleteHabitMutation = useMutation({
     mutationFn: async (habitId) => {
-      const response = await fetch(`/api/habits/${habitId}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) {
+      if (USE_MOCK_DATA) {
+        console.log("Using mock data, simulating habit deletion");
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return { success: true };
+      }
+      
+      try {
+        // Use Supabase service
+        return await habitsService.delete(habitId);
+      } catch (supabaseError) {
+        console.error("Supabase error:", supabaseError);
         throw new Error("Failed to delete habit");
       }
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["habits"] });
