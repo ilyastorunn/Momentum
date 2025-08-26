@@ -26,11 +26,13 @@ import Animated, {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { habitsService } from "@/utils/supabaseService";
 import { mockApiResponses, USE_MOCK_DATA, SIMULATE_NETWORK_ERROR, API_DELAY } from "@/utils/mockData";
+import { useSupabaseAuth } from "@/utils/auth/useSupabaseAuth";
 
 export default function HabitsScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const { isAuthenticated, initialized } = useSupabaseAuth();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -44,7 +46,7 @@ export default function HabitsScreen() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["habits"],
+    queryKey: ["habits", isAuthenticated],
     queryFn: async () => {
       // If using mock data, return immediately
       if (USE_MOCK_DATA) {
@@ -57,6 +59,13 @@ export default function HabitsScreen() {
         throw new Error("Failed to fetch habits");
       }
       
+      // If user is not authenticated, use mock data
+      if (!isAuthenticated) {
+        console.log("User not authenticated, using mock data for habits");
+        await new Promise(resolve => setTimeout(resolve, API_DELAY));
+        return mockApiResponses.habits;
+      }
+      
       try {
         // Use Supabase service
         return await habitsService.getAll();
@@ -67,6 +76,7 @@ export default function HabitsScreen() {
         return mockApiResponses.habits;
       }
     },
+    enabled: initialized, // Only run query when auth is initialized
   });
 
   // Delete habit mutation

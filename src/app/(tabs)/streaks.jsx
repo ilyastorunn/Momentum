@@ -20,11 +20,13 @@ import { useQuery } from "@tanstack/react-query";
 import { LineGraph } from "react-native-graph";
 import { habitsService, calendarService } from "@/utils/supabaseService";
 import { mockApiResponses, USE_MOCK_DATA, SIMULATE_NETWORK_ERROR, API_DELAY } from "@/utils/mockData";
+import { useSupabaseAuth } from "@/utils/auth/useSupabaseAuth";
 
 export default function StreaksScreen() {
   const insets = useSafeAreaInsets();
   const windowWidth = Dimensions.get("window").width;
   const graphWidth = windowWidth - 40; // Account for padding
+  const { isAuthenticated, initialized } = useSupabaseAuth();
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -45,7 +47,7 @@ export default function StreaksScreen() {
     isLoading: habitsLoading,
     error: habitsError,
   } = useQuery({
-    queryKey: ["habits"],
+    queryKey: ["habits", isAuthenticated],
     queryFn: async () => {
       // If using mock data, return immediately
       if (USE_MOCK_DATA) {
@@ -58,6 +60,13 @@ export default function StreaksScreen() {
         throw new Error("Failed to fetch habits");
       }
       
+      // If user is not authenticated, use mock data
+      if (!isAuthenticated) {
+        console.log("User not authenticated, using mock data for habits");
+        await new Promise(resolve => setTimeout(resolve, API_DELAY));
+        return mockApiResponses.habits;
+      }
+      
       try {
         // Use Supabase service
         return await habitsService.getAll();
@@ -68,6 +77,7 @@ export default function StreaksScreen() {
         return mockApiResponses.habits;
       }
     },
+    enabled: initialized, // Only run query when auth is initialized
   });
 
   // Fetch calendar data for heat map
@@ -76,7 +86,7 @@ export default function StreaksScreen() {
     isLoading: calendarLoading,
     error: calendarError,
   } = useQuery({
-    queryKey: ["calendar", currentYear, currentMonth],
+    queryKey: ["calendar", currentYear, currentMonth, isAuthenticated],
     queryFn: async () => {
       // If using mock data, return immediately
       if (USE_MOCK_DATA) {
@@ -89,6 +99,13 @@ export default function StreaksScreen() {
         throw new Error("Failed to fetch calendar data");
       }
       
+      // If user is not authenticated, use mock data
+      if (!isAuthenticated) {
+        console.log("User not authenticated, using mock data for calendar");
+        await new Promise(resolve => setTimeout(resolve, API_DELAY));
+        return mockApiResponses.calendar;
+      }
+      
       try {
         // Use Supabase service
         return await calendarService.getMonthData(currentYear, currentMonth);
@@ -99,6 +116,7 @@ export default function StreaksScreen() {
         return mockApiResponses.calendar;
       }
     },
+    enabled: initialized, // Only run query when auth is initialized
   });
 
   // Generate analytics data for graphs

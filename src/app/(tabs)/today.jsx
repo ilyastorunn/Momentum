@@ -26,10 +26,12 @@ import Animated, {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { progressService } from "@/utils/supabaseService";
 import { mockApiResponses, USE_MOCK_DATA, SIMULATE_NETWORK_ERROR, API_DELAY } from "@/utils/mockData";
+import { useSupabaseAuth } from "@/utils/auth/useSupabaseAuth";
 
 export default function TodayScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const { isAuthenticated, initialized } = useSupabaseAuth();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -48,7 +50,7 @@ export default function TodayScreen() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["progress", today],
+    queryKey: ["progress", today, isAuthenticated],
     queryFn: async () => {
       // If using mock data, return immediately
       if (USE_MOCK_DATA) {
@@ -61,6 +63,13 @@ export default function TodayScreen() {
         throw new Error("Failed to fetch progress");
       }
       
+      // If user is not authenticated, use mock data
+      if (!isAuthenticated) {
+        console.log("User not authenticated, using mock data for progress");
+        await new Promise(resolve => setTimeout(resolve, API_DELAY));
+        return mockApiResponses.progress;
+      }
+      
       try {
         // Use Supabase service
         return await progressService.getByDate(today);
@@ -71,6 +80,7 @@ export default function TodayScreen() {
         return mockApiResponses.progress;
       }
     },
+    enabled: initialized, // Only run query when auth is initialized
   });
 
   // Update progress mutation
@@ -85,6 +95,13 @@ export default function TodayScreen() {
       
       if (SIMULATE_NETWORK_ERROR) {
         throw new Error("Failed to update progress");
+      }
+      
+      // If user is not authenticated, simulate update
+      if (!isAuthenticated) {
+        console.log("User not authenticated, simulating progress update");
+        await new Promise(resolve => setTimeout(resolve, 200));
+        return { success: true };
       }
       
       try {

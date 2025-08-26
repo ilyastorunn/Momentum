@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,9 +6,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { useSupabaseAuth } from '../../utils/auth/useSupabaseAuth';
+import { AuthModal } from '../../components/auth/AuthModal';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -16,19 +19,51 @@ export default function ProfileScreen() {
     Inter_700Bold,
   });
 
-  // Mock user data
-  const userData = {
-    name: 'Alex Johnson',
-    joinedDate: '2024-01-15',
-    totalHabits: 4,
+  const { 
+    user, 
+    isAuthenticated, 
+    isLoading, 
+    initialized,
+    signOutWithAlert 
+  } = useSupabaseAuth();
+
+  // User data - either from Supabase or mock
+  const userData = user ? {
+    name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+    email: user.email,
+    joinedDate: user.created_at,
+    totalHabits: 4, // This would come from your habits query
     totalStreaks: 28,
     longestStreak: 25,
     completionRate: 78,
+  } : {
+    name: 'Guest User',
+    joinedDate: new Date().toISOString(),
+    totalHabits: 0,
+    totalStreaks: 0,
+    longestStreak: 0,
+    completionRate: 0,
   };
 
   const handleSettingsPress = (setting) => {
     Haptics.selectionAsync();
     Alert.alert(setting, `${setting} settings would open here`);
+  };
+
+  const handleAuthPress = () => {
+    if (isAuthenticated) {
+      // Show sign out confirmation
+      Alert.alert(
+        'Çıkış Yap',
+        'Hesabınızdan çıkış yapmak istediğinizden emin misiniz?',
+        [
+          { text: 'İptal', style: 'cancel' },
+          { text: 'Çıkış Yap', style: 'destructive', onPress: signOutWithAlert },
+        ]
+      );
+    } else {
+      setShowAuthModal(true);
+    }
   };
 
   if (!fontsLoaded) {
@@ -237,6 +272,15 @@ export default function ProfileScreen() {
             color="#8E8E93"
             onPress={() => handleSettingsPress('About')}
           />
+
+          {/* Auth Button */}
+          <SettingsOption
+            title={isAuthenticated ? 'Sign Out' : 'Sign In / Sign Up'}
+            subtitle={isAuthenticated ? 'Log out of your account' : 'Access your habits anywhere'}
+            icon={isAuthenticated ? 'log-out' : 'log-in'}
+            color={isAuthenticated ? '#FF3B30' : '#4EFF95'}
+            onPress={handleAuthPress}
+          />
         </View>
 
         {/* App Info */}
@@ -262,6 +306,13 @@ export default function ProfileScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Auth Modal */}
+      <AuthModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialMode="login"
+      />
     </View>
   );
 }

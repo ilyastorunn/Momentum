@@ -1,5 +1,6 @@
 
 import { useAuth } from '@/utils/auth/useAuth';
+import { useSupabaseAuth } from '@/utils/auth/useSupabaseAuth';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -20,18 +21,19 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const { initiate, isReady } = useAuth();
+  const { initialized } = useSupabaseAuth(); // Initialize Supabase Auth
 
   useEffect(() => {
     initiate();
   }, [initiate]);
 
   useEffect(() => {
-    if (isReady) {
+    if (isReady && initialized) {
       SplashScreen.hideAsync();
     }
-  }, [isReady]);
+  }, [isReady, initialized]);
 
-  if (!isReady) {
+  if (!isReady || !initialized) {
     return null;
   }
 

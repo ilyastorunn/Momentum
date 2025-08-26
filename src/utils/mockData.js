@@ -170,7 +170,7 @@ console.log("EXPO_PUBLIC_SUPABASE_URL:", process.env.EXPO_PUBLIC_SUPABASE_URL);
 
 // Development flags - environment variables'dan alınır
 export const USE_MOCK_DATA =
-  process.env.EXPO_PUBLIC_USE_MOCK_DATA !== "false";
+  process.env.EXPO_PUBLIC_USE_MOCK_DATA === "true" || false;
 export const SIMULATE_NETWORK_ERROR =
   process.env.EXPO_PUBLIC_SIMULATE_NETWORK_ERROR === "true" || false;
 

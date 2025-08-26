@@ -26,12 +26,14 @@ import Animated, {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { habitsService, progressService } from '@/utils/supabaseService';
 import { getMockHabitDetail, getMockHabitProgress, USE_MOCK_DATA, SIMULATE_NETWORK_ERROR, API_DELAY } from '@/utils/mockData';
+import { useSupabaseAuth } from '@/utils/auth/useSupabaseAuth';
 
 export default function HabitDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const { isAuthenticated, initialized } = useSupabaseAuth();
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -52,7 +54,7 @@ export default function HabitDetailScreen() {
     isLoading: habitLoading,
     error: habitError,
   } = useQuery({
-    queryKey: ['habit', id],
+    queryKey: ['habit', id, isAuthenticated],
     queryFn: async () => {
       // If using mock data, return immediately
       if (USE_MOCK_DATA) {
@@ -65,6 +67,13 @@ export default function HabitDetailScreen() {
         throw new Error('Failed to fetch habit');
       }
       
+      // If user is not authenticated, use mock data
+      if (!isAuthenticated) {
+        console.log("User not authenticated, using mock data for habit detail");
+        await new Promise(resolve => setTimeout(resolve, API_DELAY));
+        return getMockHabitDetail(id);
+      }
+      
       try {
         // Use Supabase service
         return await habitsService.getById(id);
@@ -75,6 +84,7 @@ export default function HabitDetailScreen() {
         return getMockHabitDetail(id);
       }
     },
+    enabled: initialized, // Only run query when auth is initialized
   });
 
   // Fetch progress data for the month
@@ -83,7 +93,7 @@ export default function HabitDetailScreen() {
     isLoading: progressLoading,
     error: progressError,
   } = useQuery({
-    queryKey: ['progress', id, currentYear, currentMonth],
+    queryKey: ['progress', id, currentYear, currentMonth, isAuthenticated],
     queryFn: async () => {
       // If using mock data, return immediately
       if (USE_MOCK_DATA) {
@@ -94,6 +104,13 @@ export default function HabitDetailScreen() {
       
       if (SIMULATE_NETWORK_ERROR) {
         throw new Error('Failed to fetch progress');
+      }
+      
+      // If user is not authenticated, use mock data
+      if (!isAuthenticated) {
+        console.log("User not authenticated, using mock data for habit progress");
+        await new Promise(resolve => setTimeout(resolve, API_DELAY));
+        return getMockHabitProgress(id, currentYear, currentMonth);
       }
       
       try {
@@ -108,6 +125,7 @@ export default function HabitDetailScreen() {
         return getMockHabitProgress(id, currentYear, currentMonth);
       }
     },
+    enabled: initialized, // Only run query when auth is initialized
   });
 
   // Toggle progress mutation
@@ -122,6 +140,13 @@ export default function HabitDetailScreen() {
       
       if (SIMULATE_NETWORK_ERROR) {
         throw new Error('Failed to update progress');
+      }
+      
+      // If user is not authenticated, simulate update
+      if (!isAuthenticated) {
+        console.log("User not authenticated, simulating progress toggle");
+        await new Promise(resolve => setTimeout(resolve, 200));
+        return { success: true };
       }
       
       try {
