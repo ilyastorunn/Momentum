@@ -24,8 +24,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { progressService } from "@/utils/supabaseService";
-import { mockApiResponses, USE_MOCK_DATA, SIMULATE_NETWORK_ERROR, API_DELAY } from "@/utils/mockData";
+import { unifiedProgressService } from "@/utils/unifiedService";
 import { useSupabaseAuth } from "@/utils/auth/useSupabaseAuth";
 
 export default function TodayScreen() {
@@ -52,33 +51,8 @@ export default function TodayScreen() {
   } = useQuery({
     queryKey: ["progress", today, isAuthenticated],
     queryFn: async () => {
-      // If using mock data, return immediately
-      if (USE_MOCK_DATA) {
-        console.log("Using mock data for progress");
-        await new Promise(resolve => setTimeout(resolve, API_DELAY));
-        return mockApiResponses.progress;
-      }
-      
-      if (SIMULATE_NETWORK_ERROR) {
-        throw new Error("Failed to fetch progress");
-      }
-      
-      // If user is not authenticated, use mock data
-      if (!isAuthenticated) {
-        console.log("User not authenticated, using mock data for progress");
-        await new Promise(resolve => setTimeout(resolve, API_DELAY));
-        return mockApiResponses.progress;
-      }
-      
-      try {
-        // Use Supabase service
-        return await progressService.getByDate(today);
-      } catch (supabaseError) {
-        console.error("Supabase error:", supabaseError);
-        // Fallback to mock data if Supabase fails
-        console.log("Supabase failed, using mock data for progress");
-        return mockApiResponses.progress;
-      }
+      // Use unified service - handles auth automatically
+      return await unifiedProgressService.getByDate(today, isAuthenticated);
     },
     enabled: initialized, // Only run query when auth is initialized
   });
@@ -86,33 +60,8 @@ export default function TodayScreen() {
   // Update progress mutation
   const updateProgressMutation = useMutation({
     mutationFn: async ({ habit_id, completed, note }) => {
-      // If using mock data, simulate successful update
-      if (USE_MOCK_DATA) {
-        console.log("Using mock data, simulating progress update");
-        await new Promise(resolve => setTimeout(resolve, 200));
-        return { success: true };
-      }
-      
-      if (SIMULATE_NETWORK_ERROR) {
-        throw new Error("Failed to update progress");
-      }
-      
-      // If user is not authenticated, simulate update
-      if (!isAuthenticated) {
-        console.log("User not authenticated, simulating progress update");
-        await new Promise(resolve => setTimeout(resolve, 200));
-        return { success: true };
-      }
-      
-      try {
-        // Use Supabase service
-        return await progressService.update(habit_id, today, completed, note);
-      } catch (supabaseError) {
-        console.error("Supabase error:", supabaseError);
-        // Simulate successful update for demo if Supabase fails
-        console.log("Supabase failed, simulating progress update");
-        return { success: true };
-      }
+      // Use unified service - handles auth automatically
+      return await unifiedProgressService.update(habit_id, today, completed, note, isAuthenticated);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["progress", today] });

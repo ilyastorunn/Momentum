@@ -24,8 +24,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { habitsService, progressService } from '@/utils/supabaseService';
-import { getMockHabitDetail, getMockHabitProgress, USE_MOCK_DATA, SIMULATE_NETWORK_ERROR, API_DELAY } from '@/utils/mockData';
+import { unifiedHabitsService, unifiedProgressService } from '@/utils/unifiedService';
 import { useSupabaseAuth } from '@/utils/auth/useSupabaseAuth';
 
 export default function HabitDetailScreen() {
@@ -56,33 +55,8 @@ export default function HabitDetailScreen() {
   } = useQuery({
     queryKey: ['habit', id, isAuthenticated],
     queryFn: async () => {
-      // If using mock data, return immediately
-      if (USE_MOCK_DATA) {
-        console.log("Using mock data for habit detail");
-        await new Promise(resolve => setTimeout(resolve, API_DELAY));
-        return getMockHabitDetail(id);
-      }
-      
-      if (SIMULATE_NETWORK_ERROR) {
-        throw new Error('Failed to fetch habit');
-      }
-      
-      // If user is not authenticated, use mock data
-      if (!isAuthenticated) {
-        console.log("User not authenticated, using mock data for habit detail");
-        await new Promise(resolve => setTimeout(resolve, API_DELAY));
-        return getMockHabitDetail(id);
-      }
-      
-      try {
-        // Use Supabase service
-        return await habitsService.getById(id);
-      } catch (supabaseError) {
-        console.error("Supabase error:", supabaseError);
-        // Fallback to mock data if Supabase fails
-        console.log("Supabase failed, using mock data for habit detail");
-        return getMockHabitDetail(id);
-      }
+      // Use unified service - handles auth automatically
+      return await unifiedHabitsService.getById(id, isAuthenticated);
     },
     enabled: initialized, // Only run query when auth is initialized
   });
@@ -95,35 +69,10 @@ export default function HabitDetailScreen() {
   } = useQuery({
     queryKey: ['progress', id, currentYear, currentMonth, isAuthenticated],
     queryFn: async () => {
-      // If using mock data, return immediately
-      if (USE_MOCK_DATA) {
-        console.log("Using mock data for habit progress");
-        await new Promise(resolve => setTimeout(resolve, API_DELAY));
-        return getMockHabitProgress(id, currentYear, currentMonth);
-      }
-      
-      if (SIMULATE_NETWORK_ERROR) {
-        throw new Error('Failed to fetch progress');
-      }
-      
-      // If user is not authenticated, use mock data
-      if (!isAuthenticated) {
-        console.log("User not authenticated, using mock data for habit progress");
-        await new Promise(resolve => setTimeout(resolve, API_DELAY));
-        return getMockHabitProgress(id, currentYear, currentMonth);
-      }
-      
-      try {
-        // Use Supabase service
-        const startDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
-        const endDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`;
-        return await progressService.getByHabitAndDateRange(id, startDate, endDate);
-      } catch (supabaseError) {
-        console.error("Supabase error:", supabaseError);
-        // Fallback to mock data if Supabase fails
-        console.log("Supabase failed, using mock data for habit progress");
-        return getMockHabitProgress(id, currentYear, currentMonth);
-      }
+      // Use unified service - handles auth automatically
+      const startDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+      const endDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`;
+      return await unifiedProgressService.getByHabitAndDateRange(id, startDate, endDate, isAuthenticated);
     },
     enabled: initialized, // Only run query when auth is initialized
   });
@@ -131,33 +80,8 @@ export default function HabitDetailScreen() {
   // Toggle progress mutation
   const toggleProgressMutation = useMutation({
     mutationFn: async ({ habitId, date, completed }) => {
-      // If using mock data, simulate successful update
-      if (USE_MOCK_DATA) {
-        console.log("Using mock data, simulating progress toggle");
-        await new Promise(resolve => setTimeout(resolve, 200));
-        return { success: true };
-      }
-      
-      if (SIMULATE_NETWORK_ERROR) {
-        throw new Error('Failed to update progress');
-      }
-      
-      // If user is not authenticated, simulate update
-      if (!isAuthenticated) {
-        console.log("User not authenticated, simulating progress toggle");
-        await new Promise(resolve => setTimeout(resolve, 200));
-        return { success: true };
-      }
-      
-      try {
-        // Use Supabase service
-        return await progressService.update(habitId, date, completed, '');
-      } catch (supabaseError) {
-        console.error("Supabase error:", supabaseError);
-        // Simulate successful update for demo if Supabase fails
-        console.log("Supabase failed, simulating progress toggle");
-        return { success: true };
-      }
+      // Use unified service - handles auth automatically
+      return await unifiedProgressService.update(habitId, date, completed, '', isAuthenticated);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['progress', id] });
@@ -168,26 +92,8 @@ export default function HabitDetailScreen() {
   // Delete habit mutation
   const deleteHabitMutation = useMutation({
     mutationFn: async (habitId) => {
-      // If using mock data, simulate successful deletion
-      if (USE_MOCK_DATA) {
-        console.log("Using mock data, simulating habit deletion");
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return { success: true };
-      }
-      
-      if (SIMULATE_NETWORK_ERROR) {
-        throw new Error('Failed to delete habit');
-      }
-      
-      try {
-        // Use Supabase service
-        return await habitsService.delete(habitId);
-      } catch (supabaseError) {
-        console.error("Supabase error:", supabaseError);
-        // Simulate successful deletion for demo if Supabase fails
-        console.log("Supabase failed, simulating habit deletion");
-        return { success: true };
-      }
+      // Use unified service - handles auth automatically
+      return await unifiedHabitsService.delete(habitId, isAuthenticated);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['habits'] });

@@ -18,8 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useQuery } from "@tanstack/react-query";
 import { LineGraph } from "react-native-graph";
-import { habitsService, calendarService } from "@/utils/supabaseService";
-import { mockApiResponses, USE_MOCK_DATA, SIMULATE_NETWORK_ERROR, API_DELAY } from "@/utils/mockData";
+import { unifiedHabitsService, unifiedCalendarService } from "@/utils/unifiedService";
 import { useSupabaseAuth } from "@/utils/auth/useSupabaseAuth";
 
 export default function StreaksScreen() {
@@ -49,33 +48,8 @@ export default function StreaksScreen() {
   } = useQuery({
     queryKey: ["habits", isAuthenticated],
     queryFn: async () => {
-      // If using mock data, return immediately
-      if (USE_MOCK_DATA) {
-        console.log("Using mock data for habits");
-        await new Promise(resolve => setTimeout(resolve, API_DELAY));
-        return mockApiResponses.habits;
-      }
-      
-      if (SIMULATE_NETWORK_ERROR) {
-        throw new Error("Failed to fetch habits");
-      }
-      
-      // If user is not authenticated, use mock data
-      if (!isAuthenticated) {
-        console.log("User not authenticated, using mock data for habits");
-        await new Promise(resolve => setTimeout(resolve, API_DELAY));
-        return mockApiResponses.habits;
-      }
-      
-      try {
-        // Use Supabase service
-        return await habitsService.getAll();
-      } catch (supabaseError) {
-        console.error("Supabase error:", supabaseError);
-        // Fallback to mock data if Supabase fails
-        console.log("Supabase failed, using mock data for habits");
-        return mockApiResponses.habits;
-      }
+      // Use unified service - handles auth automatically
+      return await unifiedHabitsService.getAll(isAuthenticated);
     },
     enabled: initialized, // Only run query when auth is initialized
   });
@@ -88,33 +62,8 @@ export default function StreaksScreen() {
   } = useQuery({
     queryKey: ["calendar", currentYear, currentMonth, isAuthenticated],
     queryFn: async () => {
-      // If using mock data, return immediately
-      if (USE_MOCK_DATA) {
-        console.log("Using mock data for calendar");
-        await new Promise(resolve => setTimeout(resolve, API_DELAY));
-        return mockApiResponses.calendar;
-      }
-      
-      if (SIMULATE_NETWORK_ERROR) {
-        throw new Error("Failed to fetch calendar data");
-      }
-      
-      // If user is not authenticated, use mock data
-      if (!isAuthenticated) {
-        console.log("User not authenticated, using mock data for calendar");
-        await new Promise(resolve => setTimeout(resolve, API_DELAY));
-        return mockApiResponses.calendar;
-      }
-      
-      try {
-        // Use Supabase service
-        return await calendarService.getMonthData(currentYear, currentMonth);
-      } catch (supabaseError) {
-        console.error("Supabase error:", supabaseError);
-        // Fallback to mock data if Supabase fails
-        console.log("Supabase failed, using mock data for calendar");
-        return mockApiResponses.calendar;
-      }
+      // Use unified service - handles auth automatically
+      return await unifiedCalendarService.getMonthData(currentYear, currentMonth, isAuthenticated);
     },
     enabled: initialized, // Only run query when auth is initialized
   });

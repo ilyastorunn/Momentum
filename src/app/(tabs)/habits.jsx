@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   ScrollView,
   Pressable,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,8 +25,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { habitsService } from "@/utils/supabaseService";
-import { mockApiResponses, USE_MOCK_DATA, SIMULATE_NETWORK_ERROR, API_DELAY } from "@/utils/mockData";
+import { unifiedHabitsService } from "@/utils/unifiedService";
 import { useSupabaseAuth } from "@/utils/auth/useSupabaseAuth";
 
 export default function HabitsScreen() {
@@ -48,33 +48,8 @@ export default function HabitsScreen() {
   } = useQuery({
     queryKey: ["habits", isAuthenticated],
     queryFn: async () => {
-      // If using mock data, return immediately
-      if (USE_MOCK_DATA) {
-        console.log("Using mock data for habits");
-        await new Promise(resolve => setTimeout(resolve, API_DELAY));
-        return mockApiResponses.habits;
-      }
-      
-      if (SIMULATE_NETWORK_ERROR) {
-        throw new Error("Failed to fetch habits");
-      }
-      
-      // If user is not authenticated, use mock data
-      if (!isAuthenticated) {
-        console.log("User not authenticated, using mock data for habits");
-        await new Promise(resolve => setTimeout(resolve, API_DELAY));
-        return mockApiResponses.habits;
-      }
-      
-      try {
-        // Use Supabase service
-        return await habitsService.getAll();
-      } catch (supabaseError) {
-        console.error("Supabase error:", supabaseError);
-        // Fallback to mock data if Supabase fails
-        console.log("Supabase failed, using mock data for habits");
-        return mockApiResponses.habits;
-      }
+      // Use unified service - handles auth automatically
+      return await unifiedHabitsService.getAll(isAuthenticated);
     },
     enabled: initialized, // Only run query when auth is initialized
   });
@@ -82,19 +57,8 @@ export default function HabitsScreen() {
   // Delete habit mutation
   const deleteHabitMutation = useMutation({
     mutationFn: async (habitId) => {
-      if (USE_MOCK_DATA) {
-        console.log("Using mock data, simulating habit deletion");
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return { success: true };
-      }
-      
-      try {
-        // Use Supabase service
-        return await habitsService.delete(habitId);
-      } catch (supabaseError) {
-        console.error("Supabase error:", supabaseError);
-        throw new Error("Failed to delete habit");
-      }
+      // Use unified service - handles auth automatically
+      return await unifiedHabitsService.delete(habitId, isAuthenticated);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["habits"] });
@@ -241,27 +205,50 @@ export default function HabitsScreen() {
             paddingTop: insets.top + 20,
             paddingHorizontal: 20,
             marginBottom: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
           }}
         >
-          <Text
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontFamily: "Inter_700Bold",
+                fontSize: 32,
+                color: "#FFFFFF",
+                marginBottom: 4,
+              }}
+            >
+              Habits
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Inter_400Regular",
+                fontSize: 16,
+                color: "#8E8E93",
+              }}
+            >
+              {habits.length} habits tracked
+            </Text>
+          </View>
+          
+          {/* Add Habit Button */}
+          <TouchableOpacity
             style={{
-              fontFamily: "Inter_700Bold",
-              fontSize: 32,
-              color: "#FFFFFF",
-              marginBottom: 4,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: '#4EFF95',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.push('/create-habit');
             }}
           >
-            Habits
-          </Text>
-          <Text
-            style={{
-              fontFamily: "Inter_400Regular",
-              fontSize: 16,
-              color: "#8E8E93",
-            }}
-          >
-            {habits.length} habits tracked
-          </Text>
+            <Ionicons name="add" size={24} color="#000000" />
+          </TouchableOpacity>
         </View>
 
         {/* Statistics Cards */}
