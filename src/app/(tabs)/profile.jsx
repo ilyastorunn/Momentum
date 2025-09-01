@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
@@ -11,7 +12,9 @@ import { AuthModal } from '../../components/auth/AuthModal';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState('dark'); // Theme state
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -47,7 +50,36 @@ export default function ProfileScreen() {
 
   const handleSettingsPress = (setting) => {
     Haptics.selectionAsync();
-    Alert.alert(setting, `${setting} settings would open here`);
+    
+    // Navigate to specific settings pages
+    switch (setting) {
+      case 'Notifications':
+        router.push('/profile/notifications');
+        break;
+      case 'Data & Privacy':
+        Alert.alert(setting, `${setting} settings coming soon`);
+        break;
+      case 'Backup & Sync':
+        Alert.alert(setting, `${setting} settings coming soon`);
+        break;
+      case 'Theme':
+        Alert.alert(setting, `Theme settings are available in the profile card above`);
+        break;
+      case 'Help & Support':
+        Alert.alert(setting, `${setting} settings coming soon`);
+        break;
+      case 'About':
+        Alert.alert(setting, `${setting} settings coming soon`);
+        break;
+      default:
+        Alert.alert(setting, `${setting} settings would open here`);
+    }
+  };
+
+  const handleThemeChange = (theme) => {
+    Haptics.selectionAsync();
+    setCurrentTheme(theme);
+    // TODO: Implement actual theme persistence and application
   };
 
   const handleAuthPress = () => {
@@ -145,15 +177,46 @@ export default function ProfileScreen() {
             {userData.name}
           </Text>
 
-          {/* Member since */}
-          <Text style={{
-            fontFamily: 'Inter_400Regular',
-            fontSize: 16,
-            color: '#8E8E93',
-            marginBottom: 20,
-          }}>
-            Member since {memberSince}
-          </Text>
+          {/* Auth Status & Member Info */}
+          {isAuthenticated ? (
+            <Text style={{
+              fontFamily: 'Inter_400Regular',
+              fontSize: 16,
+              color: '#8E8E93',
+              marginBottom: 20,
+            }}>
+              Member since {memberSince}
+            </Text>
+          ) : (
+            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{
+                fontFamily: 'Inter_400Regular',
+                fontSize: 14,
+                color: '#8E8E93',
+                textAlign: 'center',
+                marginBottom: 12,
+              }}>
+                Sign in to sync your habits across devices
+              </Text>
+              <Pressable
+                onPress={() => setShowAuthModal(true)}
+                style={{
+                  backgroundColor: '#4EFF95',
+                  borderRadius: 12,
+                  paddingHorizontal: 20,
+                  paddingVertical: 10,
+                }}
+              >
+                <Text style={{
+                  fontFamily: 'Inter_600SemiBold',
+                  fontSize: 14,
+                  color: '#000000',
+                }}>
+                  Sign In
+                </Text>
+              </Pressable>
+            </View>
+          )}
 
           {/* Quick Stats */}
           <View style={{
@@ -210,6 +273,48 @@ export default function ProfileScreen() {
               }}>
                 Success Rate
               </Text>
+            </View>
+          </View>
+
+          {/* Theme Selector */}
+          <View style={{
+            marginTop: 24,
+            paddingTop: 20,
+            borderTopWidth: 1,
+            borderTopColor: '#2C2C2E',
+          }}>
+            <Text style={{
+              fontFamily: 'Inter_600SemiBold',
+              fontSize: 14,
+              color: '#8E8E93',
+              textAlign: 'center',
+              marginBottom: 12,
+            }}>
+              Theme
+            </Text>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 16,
+            }}>
+              <ThemeButton
+                theme="dark"
+                label="Dark"
+                isActive={currentTheme === 'dark'}
+                onPress={() => handleThemeChange('dark')}
+              />
+              <ThemeButton
+                theme="light"
+                label="Light"
+                isActive={currentTheme === 'light'}
+                onPress={() => handleThemeChange('light')}
+              />
+              <ThemeButton
+                theme="system"
+                label="System"
+                isActive={currentTheme === 'system'}
+                onPress={() => handleThemeChange('system')}
+              />
             </View>
           </View>
         </View>
@@ -273,14 +378,16 @@ export default function ProfileScreen() {
             onPress={() => handleSettingsPress('About')}
           />
 
-          {/* Auth Button */}
-          <SettingsOption
-            title={isAuthenticated ? 'Sign Out' : 'Sign In / Sign Up'}
-            subtitle={isAuthenticated ? 'Log out of your account' : 'Access your habits anywhere'}
-            icon={isAuthenticated ? 'log-out' : 'log-in'}
-            color={isAuthenticated ? '#FF3B30' : '#4EFF95'}
-            onPress={handleAuthPress}
-          />
+          {/* Sign Out Button - only show if authenticated */}
+          {isAuthenticated && (
+            <SettingsOption
+              title="Sign Out"
+              subtitle="Log out of your account"
+              icon="log-out"
+              color="#FF3B30"
+              onPress={handleAuthPress}
+            />
+          )}
         </View>
 
         {/* App Info */}
@@ -374,6 +481,109 @@ function SettingsOption({ title, subtitle, icon, color, onPress }) {
         </View>
 
         <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function ThemeButton({ theme, label, isActive, onPress }) {
+  const scale = useSharedValue(1);
+
+  const handlePress = () => {
+    scale.value = withSpring(0.9, { duration: 100 }, () => {
+      scale.value = withSpring(1, { duration: 100 });
+    });
+    onPress();
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const getThemeIcon = () => {
+    switch (theme) {
+      case 'dark':
+        return 'moon';
+      case 'light':
+        return 'sunny';
+      case 'system':
+        return 'phone-portrait';
+      default:
+        return 'moon';
+    }
+  };
+
+  const getThemeColors = () => {
+    if (isActive) {
+      return {
+        background: '#4EFF95',
+        iconColor: '#000000',
+        textColor: '#000000',
+      };
+    }
+    
+    switch (theme) {
+      case 'dark':
+        return {
+          background: '#2C2C2E',
+          iconColor: '#8E8E93',
+          textColor: '#8E8E93',
+        };
+      case 'light':
+        return {
+          background: '#2C2C2E',
+          iconColor: '#8E8E93',
+          textColor: '#8E8E93',
+        };
+      case 'system':
+        return {
+          background: '#2C2C2E',
+          iconColor: '#8E8E93',
+          textColor: '#8E8E93',
+        };
+      default:
+        return {
+          background: '#2C2C2E',
+          iconColor: '#8E8E93',
+          textColor: '#8E8E93',
+        };
+    }
+  };
+
+  const colors = getThemeColors();
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <Pressable
+        onPress={handlePress}
+        style={{
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <View style={{
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          backgroundColor: colors.background,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: isActive ? 2 : 1,
+          borderColor: isActive ? '#4EFF95' : '#3A3A3C',
+        }}>
+          <Ionicons
+            name={getThemeIcon()}
+            size={20}
+            color={colors.iconColor}
+          />
+        </View>
+        <Text style={{
+          fontFamily: 'Inter_500Medium',
+          fontSize: 12,
+          color: colors.textColor,
+        }}>
+          {label}
+        </Text>
       </Pressable>
     </Animated.View>
   );
