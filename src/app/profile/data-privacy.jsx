@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Switch } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -8,23 +8,9 @@ import * as Haptics from 'expo-haptics';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
-export default function NotificationsScreen() {
+export default function DataPrivacyScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  
-  // Notification settings state
-  const [settings, setSettings] = useState({
-    habitReminders: true,
-    motivationalMessages: true,
-    streakCelebrations: true,
-    weeklyProgress: false,
-    goalAchievements: true,
-    habitSuggestions: false,
-  });
-
-  // Time settings state
-  const [reminderTime, setReminderTime] = useState('09:00');
-  const [motivationFrequency, setMotivationFrequency] = useState('daily');
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -33,32 +19,53 @@ export default function NotificationsScreen() {
     Inter_700Bold,
   });
 
-  const toggleSetting = (key) => {
+  // Preferences
+  const [preferences, setPreferences] = useState({
+    analytics: true,
+    crashReports: true,
+    personalizedTips: false,
+  });
+
+  const togglePref = (key) => {
     Haptics.selectionAsync();
-    setSettings(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+    setPreferences((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleTimePress = () => {
+  const handleExportData = () => {
     Haptics.selectionAsync();
-    // TODO: Implement time picker
+    Alert.alert('Export Data', 'A data export link will be prepared.');
   };
 
-  const handleFrequencyPress = () => {
-    Haptics.selectionAsync();
-    // TODO: Implement frequency selector
+  const handleClearLocal = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      'Clear Local Data',
+      'This will remove cached data on this device. Your account data remains safe.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear', style: 'destructive', onPress: () => {} },
+      ]
+    );
   };
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  const handleDeleteAccount = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Alert.alert(
+      'Delete Account',
+      'This action is irreversible and will permanently delete your account and all data. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => {} },
+      ]
+    );
+  };
+
+  if (!fontsLoaded) return null;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000000' }}>
       <StatusBar style="light" />
-      
+
       {/* Header */}
       <View style={{
         paddingTop: insets.top + 20,
@@ -84,7 +91,7 @@ export default function NotificationsScreen() {
         >
           <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
         </Pressable>
-        
+
         <View style={{ flex: 1 }}>
           <Text style={{
             fontFamily: 'Inter_700Bold',
@@ -92,14 +99,14 @@ export default function NotificationsScreen() {
             color: '#FFFFFF',
             marginBottom: 4,
           }}>
-            Notifications
+            Data & Privacy
           </Text>
           <Text style={{
             fontFamily: 'Inter_400Regular',
             fontSize: 16,
             color: '#8E8E93',
           }}>
-            Manage your reminder settings
+            Control your data and privacy preferences
           </Text>
         </View>
       </View>
@@ -109,142 +116,109 @@ export default function NotificationsScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Notification Types */}
-        <View style={{ paddingHorizontal: 20, marginBottom: 32 }}>
-          <Text style={{
-            fontFamily: 'Inter_600SemiBold',
-            fontSize: 18,
-            color: '#FFFFFF',
-            marginBottom: 16,
-          }}>
-            Notification Types
-          </Text>
-
-          <NotificationOption
-            title="Habit Reminders"
-            subtitle="Daily reminders for your habits"
-            icon="alarm"
-            color="#4EFF95"
-            isEnabled={settings.habitReminders}
-            onToggle={() => toggleSetting('habitReminders')}
-          />
-
-          <NotificationOption
-            title="Motivational Messages"
-            subtitle="Inspiring quotes and tips"
-            icon="heart"
-            color="#FF6B35"
-            isEnabled={settings.motivationalMessages}
-            onToggle={() => toggleSetting('motivationalMessages')}
-          />
-
-          <NotificationOption
-            title="Streak Celebrations"
-            subtitle="Celebrate your achievements"
-            icon="flame"
-            color="#FFD700"
-            isEnabled={settings.streakCelebrations}
-            onToggle={() => toggleSetting('streakCelebrations')}
-          />
-
-          <NotificationOption
-            title="Weekly Progress"
-            subtitle="Summary of your week"
-            icon="bar-chart"
+        {/* Preferences */}
+        <Section title="Preferences">
+          <ToggleRow
+            title="Usage Analytics"
+            subtitle="Help us improve the app with anonymous usage data"
+            icon="stats-chart"
             color="#007AFF"
-            isEnabled={settings.weeklyProgress}
-            onToggle={() => toggleSetting('weeklyProgress')}
+            value={preferences.analytics}
+            onToggle={() => togglePref('analytics')}
           />
-
-          <NotificationOption
-            title="Goal Achievements"
-            subtitle="When you reach milestones"
-            icon="trophy"
-            color="#FF9500"
-            isEnabled={settings.goalAchievements}
-            onToggle={() => toggleSetting('goalAchievements')}
+          <ToggleRow
+            title="Crash Reports"
+            subtitle="Send crash logs to diagnose issues"
+            icon="bug"
+            color="#FF6B35"
+            value={preferences.crashReports}
+            onToggle={() => togglePref('crashReports')}
           />
-
-          <NotificationOption
-            title="Habit Suggestions"
-            subtitle="Personalized habit recommendations"
-            icon="bulb"
+          <ToggleRow
+            title="Personalized Tips"
+            subtitle="Allow insights for better habit suggestions"
+            icon="sparkles"
             color="#34C759"
-            isEnabled={settings.habitSuggestions}
-            onToggle={() => toggleSetting('habitSuggestions')}
+            value={preferences.personalizedTips}
+            onToggle={() => togglePref('personalizedTips')}
           />
-        </View>
+        </Section>
 
-        {/* Timing Settings */}
-        <View style={{ paddingHorizontal: 20, marginBottom: 32 }}>
-          <Text style={{
-            fontFamily: 'Inter_600SemiBold',
-            fontSize: 18,
-            color: '#FFFFFF',
-            marginBottom: 16,
-          }}>
-            Timing Settings
-          </Text>
-
-          <SettingsCard
-            title="Reminder Time"
-            subtitle="When to send daily reminders"
-            value={reminderTime}
-            onPress={handleTimePress}
-            icon="time"
-          />
-
-          <SettingsCard
-            title="Motivation Frequency"
-            subtitle="How often to send motivational messages"
-            value={motivationFrequency === 'daily' ? 'Daily' : motivationFrequency === 'weekly' ? 'Weekly' : 'Never'}
-            onPress={handleFrequencyPress}
-            icon="refresh"
-          />
-        </View>
-
-        {/* Quick Actions */}
-        <View style={{ paddingHorizontal: 20 }}>
-          <Text style={{
-            fontFamily: 'Inter_600SemiBold',
-            fontSize: 18,
-            color: '#FFFFFF',
-            marginBottom: 16,
-          }}>
-            Quick Actions
-          </Text>
-
-          <ActionButton
-            title="Test Notification"
-            subtitle="Send a test notification now"
-            icon="notifications"
+        {/* Data Management */}
+        <Section title="Data Management">
+          <ActionRow
+            title="Export Data"
+            subtitle="Get a copy of your data via email"
+            icon="download"
             color="#4EFF95"
-            onPress={() => {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              // TODO: Implement test notification
-            }}
+            onPress={handleExportData}
           />
-
-          <ActionButton
-            title="Notification Permissions"
-            subtitle="Check notification settings"
-            icon="settings"
+          <ActionRow
+            title="Clear Local Cache"
+            subtitle="Remove cached data on this device"
+            icon="trash"
             color="#8E8E93"
-            onPress={() => {
-              Haptics.selectionAsync();
-              // TODO: Open device notification settings
-            }}
+            onPress={handleClearLocal}
           />
-        </View>
+        </Section>
+
+        {/* Account */}
+        <Section title="Account">
+          <ActionRow
+            title="Connected Services"
+            subtitle="Manage integrations (coming soon)"
+            icon="link"
+            color="#8E8E93"
+            onPress={() => Alert.alert('Connected Services', 'Coming soon')}
+          />
+          <DangerRow
+            title="Delete Account"
+            subtitle="Permanently remove your account and data"
+            icon="warning"
+            onPress={handleDeleteAccount}
+          />
+        </Section>
+
+        {/* Legal */}
+        <Section title="Legal">
+          <ExternalRow
+            title="Privacy Policy"
+            subtitle="Learn how we handle your data"
+            icon="shield-checkmark"
+            onPress={() => Alert.alert('Privacy Policy', 'Link to policy (coming soon)')}
+          />
+          <ExternalRow
+            title="Terms of Service"
+            subtitle="Our terms and conditions"
+            icon="document-text"
+            onPress={() => Alert.alert('Terms of Service', 'Link to terms (coming soon)')}
+          />
+        </Section>
       </ScrollView>
     </View>
   );
 }
 
-function NotificationOption({ title, subtitle, icon, color, isEnabled, onToggle }) {
+function Section({ title, children }) {
+  return (
+    <View style={{ paddingHorizontal: 20, marginBottom: 32 }}>
+      <Text style={{
+        fontFamily: 'Inter_600SemiBold',
+        fontSize: 18,
+        color: '#FFFFFF',
+        marginBottom: 16,
+      }}>
+        {title}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
+function ToggleRow({ title, subtitle, icon, color, value, onToggle }) {
   const scale = useSharedValue(1);
 
-  const handlePress = () => {
+  const handleToggle = () => {
     scale.value = withSpring(0.98, { duration: 100 }, () => {
       scale.value = withSpring(1, { duration: 100 });
     });
@@ -294,94 +268,32 @@ function NotificationOption({ title, subtitle, icon, color, isEnabled, onToggle 
           </Text>
         </View>
 
-        <Switch
-          value={isEnabled}
-          onValueChange={handlePress}
-          trackColor={{ 
-            false: '#3A3A3C', 
-            true: '#4EFF95' 
+        {/* Custom pill toggle */}
+        <Pressable
+          onPress={handleToggle}
+          style={{
+            width: 52,
+            height: 30,
+            borderRadius: 16,
+            backgroundColor: value ? '#4EFF95' : '#3A3A3C',
+            padding: 2,
+            justifyContent: 'center',
           }}
-          thumbColor="#FFFFFF"
-          style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
-        />
+        >
+          <View style={{
+            width: 26,
+            height: 26,
+            borderRadius: 13,
+            backgroundColor: '#FFFFFF',
+            transform: [{ translateX: value ? 22 : 0 }],
+          }} />
+        </Pressable>
       </View>
     </Animated.View>
   );
 }
 
-function SettingsCard({ title, subtitle, value, onPress, icon }) {
-  const scale = useSharedValue(1);
-
-  const handlePress = () => {
-    scale.value = withSpring(0.98, { duration: 100 }, () => {
-      scale.value = withSpring(1, { duration: 100 });
-    });
-    onPress();
-  };
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <Animated.View style={[animatedStyle, { marginBottom: 12 }]}>
-      <Pressable
-        onPress={handlePress}
-        style={{
-          backgroundColor: '#1C1C1E',
-          borderRadius: 16,
-          padding: 20,
-          flexDirection: 'row',
-          alignItems: 'center',
-        }}
-      >
-        <View style={{
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          backgroundColor: '#007AFF',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginRight: 16,
-        }}>
-          <Ionicons name={icon} size={20} color="#FFFFFF" />
-        </View>
-
-        <View style={{ flex: 1 }}>
-          <Text style={{
-            fontFamily: 'Inter_600SemiBold',
-            fontSize: 16,
-            color: '#FFFFFF',
-            marginBottom: 2,
-          }}>
-            {title}
-          </Text>
-          <Text style={{
-            fontFamily: 'Inter_400Regular',
-            fontSize: 14,
-            color: '#8E8E93',
-          }}>
-            {subtitle}
-          </Text>
-        </View>
-
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{
-            fontFamily: 'Inter_600SemiBold',
-            fontSize: 16,
-            color: '#4EFF95',
-            marginBottom: 2,
-          }}>
-            {value}
-          </Text>
-          <Ionicons name="chevron-forward" size={16} color="#8E8E93" />
-        </View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-function ActionButton({ title, subtitle, icon, color, onPress }) {
+function ActionRow({ title, subtitle, icon, color, onPress }) {
   const scale = useSharedValue(1);
 
   const handlePress = () => {
@@ -442,4 +354,129 @@ function ActionButton({ title, subtitle, icon, color, onPress }) {
     </Animated.View>
   );
 }
+
+function DangerRow({ title, subtitle, icon, onPress }) {
+  const scale = useSharedValue(1);
+
+  const handlePress = () => {
+    scale.value = withSpring(0.98, { duration: 100 }, () => {
+      scale.value = withSpring(1, { duration: 100 });
+    });
+    onPress();
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={[animatedStyle, { marginBottom: 12 }]}>
+      <Pressable
+        onPress={handlePress}
+        style={{
+          backgroundColor: '#1C1C1E',
+          borderRadius: 16,
+          padding: 20,
+          flexDirection: 'row',
+          alignItems: 'center',
+        }}
+      >
+        <View style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: '#FF3B30',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: 16,
+        }}>
+          <Ionicons name={icon} size={20} color="#FFFFFF" />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={{
+            fontFamily: 'Inter_600SemiBold',
+            fontSize: 16,
+            color: '#FFFFFF',
+            marginBottom: 2,
+          }}>
+            {title}
+          </Text>
+          <Text style={{
+            fontFamily: 'Inter_400Regular',
+            fontSize: 14,
+            color: '#8E8E93',
+          }}>
+            {subtitle}
+          </Text>
+        </View>
+
+        <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function ExternalRow({ title, subtitle, icon, onPress }) {
+  const scale = useSharedValue(1);
+
+  const handlePress = () => {
+    scale.value = withSpring(0.98, { duration: 100 }, () => {
+      scale.value = withSpring(1, { duration: 100 });
+    });
+    onPress();
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={[animatedStyle, { marginBottom: 12 }]}>
+      <Pressable
+        onPress={handlePress}
+        style={{
+          backgroundColor: '#1C1C1E',
+          borderRadius: 16,
+          padding: 20,
+          flexDirection: 'row',
+          alignItems: 'center',
+        }}
+      >
+        <View style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: '#8E8E93',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: 16,
+        }}>
+          <Ionicons name={icon} size={20} color="#FFFFFF" />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={{
+            fontFamily: 'Inter_600SemiBold',
+            fontSize: 16,
+            color: '#FFFFFF',
+            marginBottom: 2,
+          }}>
+            {title}
+          </Text>
+          <Text style={{
+            fontFamily: 'Inter_400Regular',
+            fontSize: 14,
+            color: '#8E8E93',
+          }}>
+            {subtitle}
+          </Text>
+        </View>
+
+        <Ionicons name="open-outline" size={20} color="#8E8E93" />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 

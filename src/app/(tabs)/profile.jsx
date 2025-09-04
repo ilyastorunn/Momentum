@@ -57,19 +57,19 @@ export default function ProfileScreen() {
         router.push('/profile/notifications');
         break;
       case 'Data & Privacy':
-        Alert.alert(setting, `${setting} settings coming soon`);
+        router.push('/profile/data-privacy');
         break;
       case 'Backup & Sync':
-        Alert.alert(setting, `${setting} settings coming soon`);
+        router.push('/profile/backup-sync');
         break;
       case 'Theme':
         Alert.alert(setting, `Theme settings are available in the profile card above`);
         break;
       case 'Help & Support':
-        Alert.alert(setting, `${setting} settings coming soon`);
+        router.push('/profile/help-support');
         break;
       case 'About':
-        Alert.alert(setting, `${setting} settings coming soon`);
+        router.push('/profile/about');
         break;
       default:
         Alert.alert(setting, `${setting} settings would open here`);
@@ -354,13 +354,7 @@ export default function ProfileScreen() {
             onPress={() => handleSettingsPress('Backup & Sync')}
           />
 
-          <SettingsOption
-            title="Theme"
-            subtitle="Customize appearance"
-            icon="color-palette"
-            color="#FF6B35"
-            onPress={() => handleSettingsPress('Theme')}
-          />
+          
 
           <SettingsOption
             title="Help & Support"
